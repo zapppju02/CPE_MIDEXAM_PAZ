@@ -1,0 +1,85 @@
+# ------- DEPDENCIES -------
+
+- name: Installing dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - openjdk-8-jdk
+    state: latest
+
+# -------- LOGSTASH --------
+
+- name: Downloading in the Logstash package
+  tags: logstash_ubuntu
+  get_url:
+    url: https://artifacts.elastic.co/downloads/logstash/logstash-8.4.3-amd64.deb
+    dest: /tmp/logstash-8.4.3-amd64.deb
+
+- name: Installing package
+  tags: logstash_ubuntu
+  apt:
+    deb: /tmp/logstash-8.4.3-amd64.deb
+
+- name: Reloading the daemon
+  tags: logstash_ubuntu 
+  command: /bin/systemctl daemon-reload
+
+- name: Starting and enabling the service
+  tags: logstash_ubuntu
+  service:
+    name: logstash
+    state: restarted
+    enabled: true
+
+
+# -------- KIBANA --------
+
+- name: Downloading in the Kibana package
+  get_url:
+    url: https://artifacts.elastic.co/downloads/kibana/kibana-8.4.3-amd64.deb
+    dest: /tmp/kibana-8.4.3-amd64.deb
+
+- name: Installing Kibana 
+  apt:
+    deb: /tmp/kibana-8.4.3-amd64.deb
+
+- name: Reloading the daemon
+  command: /bin/systemctl daemon-reload
+
+- name: Making sure that Kibana service is started and enabled 
+  service:
+    name: kibana
+    state: restarted
+    enabled: true
+
+
+# -------- ELASTICSEARCH --------
+
+- name: Downloading in the elastic search package
+  get_url:
+    url: https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.4.3-amd64.deb
+    dest: /tmp/elasticsearch-8.4.3-amd64.deb
+
+- name: Installing package
+  apt:
+    deb: /tmp/elasticsearch-8.4.3-amd64.deb
+
+- name: Enabling elastic search service
+  tags: es_ubuntu
+  service:
+    name: elasticsearch
+    enabled: yes
+
+- name: Modifying service file
+  tags: es_ubuntu
+  replace:
+    path: /usr/lib/systemd/system/elasticsearch.service
+    regexp: "TimeoutStartSec=75"
+    replace: "TimeoutStartSec=500"
+
+- name: Starting and enabling the deamon
+  shell: |
+    sudo systemctl enable elasticsearch.service
+    sleep 10
+    sudo systemctl start elasticsearch.service
+  ignore_errors: yes
